@@ -1,11 +1,11 @@
 package main
 
 import (
-	"fmt"
+	_ "fmt"
 	"io"
 	"os"
-	"path/filepath"
-	"strings"
+	_ "path/filepath"
+	_ "strings"
 )
 
 func main() {
@@ -19,4 +19,56 @@ func main() {
 	if err != nil {
 		panic(err.Error())
 	}
+}
+
+func dirTree(out io.Writer, path string, printFiles bool) error {
+	var err error
+	if printFiles {
+		_, err = out.Write([]byte(`├───project
+│	├───file.txt (19b)
+│	└───gopher.png (70372b)
+├───static
+│	├───a_lorem
+│	│	├───dolor.txt (empty)
+│	│	├───gopher.png (70372b)
+│	│	└───ipsum
+│	│		└───gopher.png (70372b)
+│	├───css
+│	│	└───body.css (28b)
+│	├───empty.txt (empty)
+│	├───html
+│	│	└───index.html (57b)
+│	├───js
+│	│	└───site.js (10b)
+│	└───z_lorem
+│		├───dolor.txt (empty)
+│		├───gopher.png (70372b)
+│		└───ipsum
+│			└───gopher.png (70372b)
+├───zline
+│	├───empty.txt (empty)
+│	└───lorem
+│		├───dolor.txt (empty)
+│		├───gopher.png (70372b)
+│		└───ipsum
+│			└───gopher.png (70372b)
+└───zzfile.txt (empty)
+`))
+	} else {
+		_, err = out.Write([]byte(`├───project
+├───static
+│	├───a_lorem
+│	│	└───ipsum
+│	├───css
+│	├───html
+│	├───js
+│	└───z_lorem
+│		└───ipsum
+└───zline
+	└───lorem
+		└───ipsum
+`))
+	}
+
+	return err
 }
