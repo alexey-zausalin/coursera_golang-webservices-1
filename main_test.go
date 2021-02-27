@@ -5,6 +5,9 @@ import (
 	"testing"
 )
 
+// -----
+// go test -v
+
 const testFullResult = `├───project
 │	├───file.txt (19b)
 │	└───gopher.png (70372b)
@@ -71,5 +74,15 @@ func TestTreeDir(t *testing.T) {
 	result := out.String()
 	if result != testDirResult {
 		t.Errorf("test for OK Failed - results not match\nGot:\n%v\nExpected:\n%v", result, testDirResult)
+	}
+}
+
+// -----
+// go test -bench . -benchmem
+
+func BenchmarkDeerTree(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		out := new(bytes.Buffer)
+		_ = dirTree(out, "testdata", true)
 	}
 }

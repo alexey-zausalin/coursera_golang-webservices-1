@@ -2,12 +2,11 @@ package main
 
 import (
 	"fmt"
-	_ "fmt"
 	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	_ "strings"
+	"strings"
 )
 
 func main() {
@@ -24,49 +23,97 @@ func main() {
 }
 
 func dirTree(out io.Writer, path string, printFiles bool) error {
-	return dirPrintTree(out, path, "", printFiles)
-}
-
-func dirPrintTree(out io.Writer, path string, prefix string, printFiles bool) error {
-	files, err := ioutil.ReadDir(path)
+	tree := Tree{path: path}
+	treeResult, err := tree.String(printFiles)
 	if err != nil {
 		return err
 	}
+	_, err = out.Write([]byte(treeResult))
 
-	if !printFiles {
+	return err
+}
+
+type Tree struct {
+	path   string
+	parent *Tree
+	isLast bool
+}
+
+func (t *Tree) String(withFiles bool) (string, error) {
+	files, err := ioutil.ReadDir(t.path)
+	if err != nil {
+		return "", err
+	}
+
+	if !withFiles {
 		files = filterOnLyDirs(files)
 	}
 
+	prefix := t.getStringPrefix()
+
+	stringBuilder := strings.Builder{}
 	for i := 0; i < len(files); i++ {
 		isLastPosition := i == len(files)-1
 
-		if isLastPosition {
-			_, err = out.Write([]byte(prefix + getLastPositionPrefix() + getFileFormattedData(files[i]) + "\n"))
-		} else {
-			_, err = out.Write([]byte(prefix + getMiddlePositionPrefix() + getFileFormattedData(files[i]) + "\n"))
-		}
-
-		if err != nil {
-			return err
-		}
+		node := Node{files[i], isLastPosition}
+		stringBuilder.WriteString(prefix + node.String() + "\n")
 
 		if files[i].IsDir() {
-			subLevelPrefix := prefix
-			if isLastPosition {
-				subLevelPrefix += getTopLevelLastPositionPrefix()
-			} else {
-				subLevelPrefix += getTopLevelMiddlePositionPrefix()
-			}
-
-			err = dirPrintTree(out, path+string(filepath.Separator)+files[i].Name(), subLevelPrefix, printFiles)
-
+			tree := Tree{filepath.Join(t.path, files[i].Name()), t, isLastPosition}
+			treeResult, err := tree.String(withFiles)
 			if err != nil {
-				return err
+				return "", nil
 			}
+
+			stringBuilder.WriteString(treeResult)
 		}
 	}
 
-	return nil
+	return stringBuilder.String(), nil
+}
+
+func (t *Tree) getStringPrefix() string {
+	if t.parent == nil {
+		return ""
+	}
+
+	result := t.parent.getStringPrefix()
+	if t.isLast {
+		return result + "\t"
+	}
+
+	return result + "│\t"
+}
+
+type Node struct {
+	fileInfo os.FileInfo
+	isLast   bool
+}
+
+func (n *Node) String() string {
+	return n.getStringPrefix() + n.getFileInfo()
+}
+
+func (n *Node) getStringPrefix() string {
+	if n.isLast {
+		return "└───"
+	}
+
+	return "├───"
+}
+
+func (n *Node) getFileInfo() string {
+	if n.fileInfo.IsDir() {
+		return n.fileInfo.Name()
+	}
+
+	size := n.fileInfo.Size()
+
+	if size == 0 {
+		return n.fileInfo.Name() + " (empty)"
+	}
+
+	return fmt.Sprintf("%s (%db)", n.fileInfo.Name(), size)
 }
 
 func filterOnLyDirs(files []os.FileInfo) []os.FileInfo {
@@ -77,34 +124,4 @@ func filterOnLyDirs(files []os.FileInfo) []os.FileInfo {
 		}
 	}
 	return result
-}
-
-func getMiddlePositionPrefix() string {
-	return "├───"
-}
-
-func getLastPositionPrefix() string {
-	return "└───"
-}
-
-func getTopLevelMiddlePositionPrefix() string {
-	return "│\t"
-}
-
-func getTopLevelLastPositionPrefix() string {
-	return "\t"
-}
-
-func getFileFormattedData(fileInfo os.FileInfo) string {
-	if fileInfo.IsDir() {
-		return fileInfo.Name()
-	}
-
-	size := fileInfo.Size()
-
-	if size == 0 {
-		return fileInfo.Name() + " (empty)"
-	}
-
-	return fmt.Sprintf("%s (%db)", fileInfo.Name(), size)
 }
