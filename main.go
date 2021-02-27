@@ -1,10 +1,12 @@
 package main
 
 import (
+	"fmt"
 	_ "fmt"
 	"io"
+	"io/ioutil"
 	"os"
-	_ "path/filepath"
+	"path/filepath"
 	_ "strings"
 )
 
@@ -22,53 +24,87 @@ func main() {
 }
 
 func dirTree(out io.Writer, path string, printFiles bool) error {
-	var err error
-	if printFiles {
-		_, err = out.Write([]byte(`├───project
-│	├───file.txt (19b)
-│	└───gopher.png (70372b)
-├───static
-│	├───a_lorem
-│	│	├───dolor.txt (empty)
-│	│	├───gopher.png (70372b)
-│	│	└───ipsum
-│	│		└───gopher.png (70372b)
-│	├───css
-│	│	└───body.css (28b)
-│	├───empty.txt (empty)
-│	├───html
-│	│	└───index.html (57b)
-│	├───js
-│	│	└───site.js (10b)
-│	└───z_lorem
-│		├───dolor.txt (empty)
-│		├───gopher.png (70372b)
-│		└───ipsum
-│			└───gopher.png (70372b)
-├───zline
-│	├───empty.txt (empty)
-│	└───lorem
-│		├───dolor.txt (empty)
-│		├───gopher.png (70372b)
-│		└───ipsum
-│			└───gopher.png (70372b)
-└───zzfile.txt (empty)
-`))
-	} else {
-		_, err = out.Write([]byte(`├───project
-├───static
-│	├───a_lorem
-│	│	└───ipsum
-│	├───css
-│	├───html
-│	├───js
-│	└───z_lorem
-│		└───ipsum
-└───zline
-	└───lorem
-		└───ipsum
-`))
+	return dirPrintTree(out, path, "", printFiles)
+}
+
+func dirPrintTree(out io.Writer, path string, prefix string, printFiles bool) error {
+	files, err := ioutil.ReadDir(path)
+	if err != nil {
+		return err
 	}
 
-	return err
+	if !printFiles {
+		files = filterOnLyDirs(files)
+	}
+
+	for i := 0; i < len(files); i++ {
+		isLastPosition := i == len(files)-1
+
+		if isLastPosition {
+			_, err = out.Write([]byte(prefix + getLastPositionPrefix() + getFileFormattedData(files[i]) + "\n"))
+		} else {
+			_, err = out.Write([]byte(prefix + getMiddlePositionPrefix() + getFileFormattedData(files[i]) + "\n"))
+		}
+
+		if err != nil {
+			return err
+		}
+
+		if files[i].IsDir() {
+			subLevelPrefix := prefix
+			if isLastPosition {
+				subLevelPrefix += getTopLevelLastPositionPrefix()
+			} else {
+				subLevelPrefix += getTopLevelMiddlePositionPrefix()
+			}
+
+			err = dirPrintTree(out, path+string(filepath.Separator)+files[i].Name(), subLevelPrefix, printFiles)
+
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
+func filterOnLyDirs(files []os.FileInfo) []os.FileInfo {
+	result := make([]os.FileInfo, 0)
+	for _, file := range files {
+		if file.IsDir() {
+			result = append(result, file)
+		}
+	}
+	return result
+}
+
+func getMiddlePositionPrefix() string {
+	return "├───"
+}
+
+func getLastPositionPrefix() string {
+	return "└───"
+}
+
+func getTopLevelMiddlePositionPrefix() string {
+	return "│\t"
+}
+
+func getTopLevelLastPositionPrefix() string {
+	return "\t"
+}
+
+func getFileFormattedData(fileInfo os.FileInfo) string {
+	if fileInfo.IsDir() {
+		return fileInfo.Name()
+	}
+
+	size := fileInfo.Size()
+
+	if size == 0 {
+		return fileInfo.Name() + " (empty)"
+	}
+
+	return fmt.Sprintf("%s (%db)", fileInfo.Name(), size)
 }
