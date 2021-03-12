@@ -56,7 +56,10 @@ func (t *Tree) String(withFiles bool) (string, error) {
 		isLastPosition := i == len(files)-1
 
 		node := Node{files[i], isLastPosition}
-		stringBuilder.WriteString(prefix + node.String() + "\n")
+
+		stringBuilder.WriteString(prefix)
+		stringBuilder.WriteString(node.String())
+		stringBuilder.WriteString("\n")
 
 		if files[i].IsDir() {
 			tree := Tree{filepath.Join(t.path, files[i].Name()), t, isLastPosition}

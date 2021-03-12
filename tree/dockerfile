@@ -1,4 +1,6 @@
-# docker build -t mailgo_hw1 .
-FROM golang:1.9.2
+# docker build -t coursera_golang-webservices-1_tree .
+FROM golang:1.16
+
 COPY . .
+
 RUN go test -v
