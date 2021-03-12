@@ -20,8 +20,7 @@ func FastSearch(out io.Writer) {
 		panic(err)
 	}
 
-	seenBrowsers := []string{}
-	uniqueBrowsers := 0
+	seenBrowsers := map[string]bool{}
 	foundUsers := ""
 
 	lines := strings.Split(string(fileContents), "\n")
@@ -56,17 +55,7 @@ func FastSearch(out io.Writer) {
 			}
 			if strings.Contains(browser, "Android") {
 				isAndroid = true
-				notSeenBefore := true
-				for _, item := range seenBrowsers {
-					if item == browser {
-						notSeenBefore = false
-					}
-				}
-				if notSeenBefore {
-					// log.Printf("SLOW New browser: %s, first seen: %s", browser, user["name"])
-					seenBrowsers = append(seenBrowsers, browser)
-					uniqueBrowsers++
-				}
+				seenBrowsers[browser] = true
 			}
 		}
 
@@ -78,17 +67,7 @@ func FastSearch(out io.Writer) {
 			}
 			if strings.Contains(browser, "MSIE") {
 				isMSIE = true
-				notSeenBefore := true
-				for _, item := range seenBrowsers {
-					if item == browser {
-						notSeenBefore = false
-					}
-				}
-				if notSeenBefore {
-					// log.Printf("SLOW New browser: %s, first seen: %s", browser, user["name"])
-					seenBrowsers = append(seenBrowsers, browser)
-					uniqueBrowsers++
-				}
+				seenBrowsers[browser] = true
 			}
 		}
 
